@@ -84,9 +84,11 @@ dados %>%
 theta_confianca = function(d, i){
     confiancas = d %>% 
         slice(i) %>% 
-        summarise(confiancas = mean(confidence))
+        summarise(media_confianca = mean(confidence))
     
-    confiancas
+    fpcc = confiancas %>% pull(media_confianca)
+    
+    fpcc
 }
 
 
