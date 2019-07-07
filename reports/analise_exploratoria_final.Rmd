@@ -31,6 +31,12 @@ dados = read_csv(here::here("data/merged.csv"))
 glimpse(dados)
 ```
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados %>% filter(resolution == 416) %>% filter(object_name == 'aeroplane') %>%
+  summarise(media = mean(confidence))
+dados
+```
+
 Análise 
 ```{r}
 #dados %>% 
@@ -115,3 +121,123 @@ ci = tidy(booted,
 glimpse(ci)
 ```
 
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 = read_csv(here::here("data/ap_merged.csv"))
+glimpse(dados1)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 %>% 
+  ggplot(aes(x=reorder(class_name, ap), y=ap, fill = ap)) +
+  geom_bar(stat = "identity", position = position_dodge(0.8)) + 
+  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10)) +
+  coord_flip() 
+```
+quanto maior a resolução, maior é o AP
+
+Veja a correlação do coeficiente... spearmam
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 %>% 
+  group_by(resolution) %>%
+  summarise(ap = mean(ap)) %>%
+  ggplot(aes(x=reorder(resolution, ap), y=ap, color = resolution)) +
+  geom_jitter() +
+  #geom_bar(stat = "identity", position = position_dodge(0.8)) + 
+  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 1)) +
+  #scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
+  coord_flip() 
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 %>% 
+  #group_by(resolution) %>%
+  ggplot(aes(x=class_name, y=ap, color = as.factor(resolution))) + #shape = as.factor(resolution)
+  geom_point(alpha=0.8) #+
+  #geom_hline(aes(yintercept=mean(ap))) 
+
+#+
+  #scale_shape_manual(values = c(5, 16, 17, 18, 19)) +
+  #scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "red", "blue"))
+
+#+
+  #scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
+  #scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10))
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 %>% 
+  #group_by(resolution) %>%
+  ggplot(aes(x=resolution, y=ap, group=resolution)) +
+  geom_boxplot(alpha=0.3) +
+  geom_point(alpha=0.5) +
+  scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10))
+
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 
+
+```
+
+## Com ICs (288 x 288)
+
+
+```{r}
+theta_ap = function(d, i){
+    aps = d %>% 
+        filter(resolution == 288) %>%
+        slice(i) %>% 
+        summarise(media_ap = mean(ap))
+    
+    fpcc = aps %>% pull(media_ap)
+    
+    fpcc
+}
+
+
+theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
+
+theta_c_fds
+```
+
+```{r}
+library(boot)
+
+booted <- boot(data = dados1,
+               statistic = theta_ap,
+               R = 2000)
+```
+
+```{r}
+ci = tidy(booted,
+          conf.level = 0.95, 
+          conf.int = TRUE)
+```
+
+```{r}
+glimpse(ci)
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 %>% 
+  group_by(resolution) %>%
+  summarise(ap = mean(ap)) %>%
+  ggplot(aes(x=reorder(resolution, ap), y=ap, fill = resolution)) +
+  geom_bar(stat = "identity", position = position_dodge(0.8)) + 
+  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10)) +
+  #geom_errorbar( aes(x=name, ymin=value-sd, ymax=value+sd), width=0.4, colour="orange", alpha=0.9, size=1.3)
+  geom_errorbar(aes(ymin = ci$conf.high, ymax = ci$conf.low), width = 0.2) #+
+  #geom_text(aes(label = round(ap, 2)), size = 6, position = position_dodge(0.85), vjust = -0.5)
+  
+```
