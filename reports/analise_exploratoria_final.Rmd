@@ -134,41 +134,50 @@ dados1 %>%
   ggplot(aes(x=reorder(class_name, ap), y=ap, fill = ap)) +
   geom_bar(stat = "identity", position = position_dodge(0.8)) + 
   scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10)) +
-  coord_flip() 
-```
-quanto maior a resolução, maior é o AP
+  coord_flip() +
+  labs(
+    #title = "Relação entre a resolução das imagens e o valor de AP",
+    #subtitle = "Popularidade acima que 5",
+    x = "Classe do objeto",
+    y = "Average Precision (AP %)" 
+  ) + guides(fill=guide_legend("(AP %)"))
 
-Veja a correlação do coeficiente... spearmam
+ggsave("dist_classe_ap.pdf", width = 5 , height = 4)
+```
+No gráfico abaixo é apresentado as taxas de AP alcançados por cada classe de objeto.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 dados1 %>% 
   group_by(resolution) %>%
   summarise(ap = mean(ap)) %>%
-  ggplot(aes(x=reorder(resolution, ap), y=ap, color = resolution)) +
+  ggplot(aes(x=resolution, y=ap, color = resolution)) +
   geom_jitter() +
+  #geom_line() +
+  #geom_smooth(aes(x=resolution, y=ap),method = lm, se = TRUE) +
+  geom_smooth(aes(x = (resolution), y = (ap)), method="lm", color="red", se = FALSE) +
   #geom_bar(stat = "identity", position = position_dodge(0.8)) + 
   scale_y_continuous(breaks = seq(from = 0, to = 100, by = 1)) +
   #scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
   coord_flip() 
 ```
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+dados1 
+
+
+corr = dados1 %>% 
+  summarise(pearson = cor(resolution, ap, method = "pearson"), 
+            spearman = cor(resolution, ap, method = "spearman"), 
+            kendall = cor(resolution, ap, method = "kendall") )
+corr
+
+```
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-dados1 %>% 
-  #group_by(resolution) %>%
-  ggplot(aes(x=class_name, y=ap, color = as.factor(resolution))) + #shape = as.factor(resolution)
-  geom_point(alpha=0.8) #+
-  #geom_hline(aes(yintercept=mean(ap))) 
-
-#+
-  #scale_shape_manual(values = c(5, 16, 17, 18, 19)) +
-  #scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07", "red", "blue"))
-
-#+
-  #scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
-  #scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10))
-
-
+#dados1 %>% 
+  #ggplot(aes(x=class_name, y=ap, color = as.factor(resolution))) + 
+  #geom_point(alpha=0.8) 
 ```
 
 
@@ -176,16 +185,30 @@ dados1 %>%
 dados1 %>% 
   #group_by(resolution) %>%
   ggplot(aes(x=resolution, y=ap, group=resolution)) +
-  geom_boxplot(alpha=0.3) +
-  geom_point(alpha=0.5) +
+  geom_boxplot(alpha=0.3, width = 15) +
+  geom_jitter(alpha=0.5, color = "salmon", height = 0.1, width = 4) +
   scale_x_continuous(breaks=c(288, 352, 416, 480, 544)) +
-  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10))
+  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10)) +
+labs(
+    #title = "Relação entre a resolução das imagens e o valor de AP",
+    #subtitle = "Popularidade acima que 5",
+    x = "Resolução da imagem (px)",
+    y = "Average Precision (AP %)" 
+  )
 
+ggsave("distribuicao_ap_resolution.pdf", width = 5 , height = 4)
 
 ```
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-dados1 
 
+As resoluções 288 $\times$ 288, 352 $\times$ 352, 416 $\times$ 416 e 480 $\times$ 480 apresentam um aspecto de distribuição de taxas de AP discrepantes superiores. Embora a maior resolução, 544 $\times$ 544, apresente uma dispersão inferior à resolução 288 $\times$ 288 e superior ao restante das resoluções, 75% de seus dados alcançam taxas de AP maiores que 80% e superiores às demais.
+
+
+
+
+
+```{r}
+#vetor <- c()
+#vetor
 ```
 
 ## Com ICs (288 x 288)
@@ -207,37 +230,240 @@ theta_ap = function(d, i){
 theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
 
 theta_c_fds
-```
 
-```{r}
 library(boot)
 
 booted <- boot(data = dados1,
                statistic = theta_ap,
-               R = 2000)
-```
+               R = 5000)
 
-```{r}
 ci = tidy(booted,
           conf.level = 0.95, 
           conf.int = TRUE)
-```
 
-```{r}
 glimpse(ci)
 ```
 
+```{r}
+d288 <- data.frame(res=288, high=ci$conf.high, low=ci$conf.low)
+d288
+```
 
+## Com ICs (352 x 352)
+
+
+```{r}
+theta_ap = function(d, i){
+    aps = d %>% 
+        filter(resolution == 352) %>%
+        slice(i) %>% 
+        summarise(media_ap = mean(ap))
+    
+    fpcc = aps %>% pull(media_ap)
+    
+    fpcc
+}
+
+
+theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
+
+theta_c_fds
+
+library(boot)
+
+booted <- boot(data = dados1,
+               statistic = theta_ap,
+               R = 5000)
+
+ci = tidy(booted,
+          conf.level = 0.95, 
+          conf.int = TRUE)
+
+glimpse(ci)
+```
+
+```{r}
+d352 <- data.frame(res=352, high=ci$conf.high, low=ci$conf.low)
+d352
+```
+
+## Com ICs (416 x 416)
+
+
+```{r}
+theta_ap = function(d, i){
+    aps = d %>% 
+        filter(resolution == 416) %>%
+        slice(i) %>% 
+        summarise(media_ap = mean(ap))
+    
+    fpcc = aps %>% pull(media_ap)
+    
+    fpcc
+}
+
+
+theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
+
+theta_c_fds
+
+
+library(boot)
+
+booted <- boot(data = dados1,
+               statistic = theta_ap,
+               R = 5000)
+
+ci = tidy(booted,
+          conf.level = 0.95, 
+          conf.int = TRUE)
+
+glimpse(ci)
+```
+
+```{r}
+d416 <- data.frame(res=416, high=ci$conf.high, low=ci$conf.low)
+d416
+```
+
+
+## Com ICs (480 x 480)
+
+
+```{r}
+theta_ap = function(d, i){
+    aps = d %>% 
+        filter(resolution == 480) %>%
+        slice(i) %>% 
+        summarise(media_ap = mean(ap))
+    
+    fpcc = aps %>% pull(media_ap)
+    
+    fpcc
+}
+
+
+theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
+
+theta_c_fds
+
+library(boot)
+
+booted <- boot(data = dados1,
+               statistic = theta_ap,
+               R = 5000)
+
+ci = tidy(booted,
+          conf.level = 0.95, 
+          conf.int = TRUE)
+
+glimpse(ci)
+```
+
+```{r}
+d480 <- data.frame(res=480, high=ci$conf.high, low=ci$conf.low)
+d480
+```
+
+## Com ICs (544 x 544)
+
+
+```{r}
+theta_ap = function(d, i){
+    aps = d %>% 
+        filter(resolution == 544) %>%
+        slice(i) %>% 
+        summarise(media_ap = mean(ap))
+    
+    fpcc = aps %>% pull(media_ap)
+    
+    fpcc
+}
+
+
+theta_c_fds = theta_ap(dados1, 1:NROW(dados1))
+
+theta_c_fds
+
+library(boot)
+
+booted <- boot(data = dados1,
+               statistic = theta_ap,
+               R = 5000)
+
+ci = tidy(booted,
+          conf.level = 0.95, 
+          conf.int = TRUE)
+
+glimpse(ci)
+```
+
+```{r}
+d544<- data.frame(res=544, high=ci$conf.high, low=ci$conf.low)
+d544
+```
+
+```{r}
+rmax <- c(d288$high, d352$high, d416$high, d480$high, d544$high)
+rmin <- c(d288$low, d352$low, d416$low, d480$low, d544$low)
+
+rmax
+rmin
+```
+
+O processo nesta seção tem como objetivo chegar a afirmações sobre as imagens em geral, a partir da amostra coletada. Para isto, utilizou-se o método \textit{bootstrap} para gerar 5000 reamostragens e posteriormente realizar as devidas análises estatísticas.
+
+Deseja-se analisar o impacto do tamanho da resolução das imagens sob a taxa de AP. Desta forma, comparou-se a diferença entre a menor, a média e a maior das resoluções apresentadas, isto é, as resoluções 288 $\times$ 288, 416 $\times$ 416 e 544 $\times$ 544. A figura 5 mostra a relação entre as taxas de AP e as todas as resoluções abordadas neste trabalho, contendo os respectivos intervalos de confiança e a média geral da taxa de AP.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+dados2 = dados1 %>% 
+  summarise(ap = round(mean(ap), digits = 2))
+dados2 
+  
 dados1 %>% 
   group_by(resolution) %>%
   summarise(ap = mean(ap)) %>%
-  ggplot(aes(x=reorder(resolution, ap), y=ap, fill = resolution)) +
-  geom_bar(stat = "identity", position = position_dodge(0.8)) + 
-  scale_y_continuous(breaks = seq(from = 0, to = 100, by = 10)) +
+  ggplot(aes(x=reorder(resolution, ap), y=ap)) +
+  geom_bar(stat = "identity", position = position_dodge(0.8), fill="#00b894", alpha=0.5, width=.7) + 
+  geom_text(aes(label=paste(round(ap, digits = 2), "%")), position=position_dodge(width=0.9), vjust=5, color="#0a0f0f", size=3.5) +
+  geom_hline(aes(yintercept=dados2$ap, linetype = "Média Geral AP"), colour="red") +
+  scale_linetype_manual(name = "Linha", values = c(2, 2)) +
+  scale_y_continuous(breaks = sort(c(seq(0, 100, by = 10), dados2$ap))) +
   #geom_errorbar( aes(x=name, ymin=value-sd, ymax=value+sd), width=0.4, colour="orange", alpha=0.9, size=1.3)
-  geom_errorbar(aes(ymin = ci$conf.high, ymax = ci$conf.low), width = 0.2) #+
-  #geom_text(aes(label = round(ap, 2)), size = 6, position = position_dodge(0.85), vjust = -0.5)
+  geom_errorbar(aes(ymin = rmax, ymax = rmin), width = 0.2, color = "#293d3d", size=1) +
+  # geom_text(aes(label = round(ap, 2)), size = 6, position = position_dodge(0.85), vjust = -0.5)
+    labs(
+    #title = "Relação entre a resolução das imagens e o valor de AP",
+    #subtitle = "Popularidade acima que 5",
+    x = "Resolução da imagem (px)",
+    y = "Average Precision (AP %)" 
+  ) +
+  theme(legend.position="bottom")
   
+ggsave("ic.pdf", width = 5 , height = 4)
+
 ```
+
+
+Com 95\% de confiança, a partir da nossa amostra de tamanho 100, os valores localizados dentro deste intervalo são listados abaixo:
+
+Para a resolução 288 $\times$ 288 foi obtida um valor de 68.27 para o $\hat{\theta}$ e um intervalo de confiança de [61.46, 74.54]. (desv. padrão 3.29, N = 20)
+
+Para a resolução 352 $\times$ 352 foi obtida um valor de 73.23 para o $\hat{\theta}$ e um intervalo de confiança de [66.95, 78.73]. (desv. padrão 2,99, N = 20)
+
+Para a resolução 416 $\times$ 416 foi obtida um valor de 76.24 para o $\hat{\theta}$ e um intervalo de confiança de [70.15, 80.53]. (desv. padrão 2.87, N = 20)
+
+Para a resolução 480 $\times$ 480 foi obtida um valor de 77.48 para o $\hat{\theta}$ e um intervalo de confiança de [71.69, 82.44]. (desv. padrão 2.76, N = 20)
+
+Para a resolução 544 $\times$ 544 foi obtida um valor de 77.85 para o $\hat{\theta}$ e um intervalo de confiança de [72.20, 82.68]. (desv. padrão 2.66, N = 20)
+
+Diferença entre as médias de AP entre as resoluções 288 $\times$ 288 e 416 $\times$ 416 obtiveram um valor de 7.97 com um intervalo de confiança de [95.0% CI -0.311, 16.2] Com 95% de confiança, a partir da amostra de dados analisada, pode-se estimar que para a população, que de acordo com comparação entre as taxas de AP entre as resoluções 288 $\times$ 288 e 416 $\times$ 416 que pode existir uma diferença muito pequena positiva para a resolução 416 $\times$ 416 ou até mesmo não existir, mas caso exista, trata-se de uma diferença com efeito relevante.
+
+Diferença entre as médias de AP entre as resoluções 544 $\times$ 544 e 416 $\times$ 416 obtiveram um valor de 1.61 com um intervalo de confiança de [95.0% CI -5.8, 9.14]. Com 95% de confiança, a partir da amostra de dados  analisada, pode-se estimar que para a população, que de acordo com comparação entre as taxas de AP entre as resoluções 544 $\times$ 544 e 416 $\times$ 416 que pode existir uma diferença muito pequena positiva para a resolução 544 $\times$ 544 ou até mesmo não existir, mas caso exista, não tem-se evidência de que seja importante, mas com um efeito menor que a comparação entre as resoluções 288 $\times$ 288 e 416 $\times$ 416.
+
+Diferença entre as médias de AP entre as resoluções 544 $\times$ 544 e 288 $\times$ 288 obtiveram um valor de  9.58 com um intervalo de confiança de [95.0% CI 1.71, 17.6] Com 95% de confiança, a partir da amostra de dados analisada, pode-se estimar que para a população, que de acordo com comparação entre as taxas de AP entre as resoluções 544 $\times$ 544 e 288 $\times$ 288 que pode existir uma diferença muito pequena positiva para a resolução 544 $\times$ 544 e com evidência de que seja importante, mas com um efeito maior que a comparação entre as resoluções 288 $\times$ 288 e 416 $\times$ 416 e, 544 $\times$ 544 e 288 $\times$ 288.
+
+Deste modo, dada a análise dos intervalos de confiança, pode-se estimar que o tamanho da resolução aparenta causar um efeito positivo na taxa de AP atingida na amostra coletada. E, que de acordo com o coeficiente de Pearson, a correlação entre a resolução da imagem e o valor de \textit{Average Precision} da amostra é de $0,25$, isto é, existe uma correlação fraca e positiva entre as duas variáveis. 
+
+Portanto, como proposta de trabalhos futuros e no intuito de alcançar resultados mais precisos, é fundamental ser feita uma reanálise utilizando um conjunto de dados maior de resoluções de imagens.
