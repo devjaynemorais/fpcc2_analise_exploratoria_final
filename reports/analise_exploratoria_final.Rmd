@@ -193,7 +193,7 @@ labs(
     #title = "Relação entre a resolução das imagens e o valor de AP",
     #subtitle = "Popularidade acima que 5",
     x = "Resolução da imagem (px)",
-    y = "Average Precision (AP %)" 
+    y = "Mean Average Precision (mAP %)" 
   )
 
 ggsave("distribuicao_ap_resolution.pdf", width = 5 , height = 4)
@@ -425,19 +425,20 @@ dados1 %>%
   group_by(resolution) %>%
   summarise(ap = mean(ap)) %>%
   ggplot(aes(x=reorder(resolution, ap), y=ap)) +
-  geom_bar(stat = "identity", position = position_dodge(0.8), fill="#00b894", alpha=0.5, width=.7) + 
+  geom_bar(stat = "identity", position = position_dodge(0.8), fill="#00b894", alpha=0.5, width=.7) +
   geom_text(aes(label=paste(round(ap, digits = 2), "%")), position=position_dodge(width=0.9), vjust=5, color="#0a0f0f", size=3.5) +
-  geom_hline(aes(yintercept=dados2$ap, linetype = "Média Geral AP"), colour="red") +
+  geom_hline(aes(yintercept=dados2$ap, linetype = "Média Geral AP"), colour="blue") +
   scale_linetype_manual(name = "Linha", values = c(2, 2)) +
   scale_y_continuous(breaks = sort(c(seq(0, 100, by = 10), dados2$ap))) +
   #geom_errorbar( aes(x=name, ymin=value-sd, ymax=value+sd), width=0.4, colour="orange", alpha=0.9, size=1.3)
   geom_errorbar(aes(ymin = rmax, ymax = rmin), width = 0.2, color = "#293d3d", size=1) +
+  geom_point(color = "red", size = 2) +
   # geom_text(aes(label = round(ap, 2)), size = 6, position = position_dodge(0.85), vjust = -0.5)
     labs(
     #title = "Relação entre a resolução das imagens e o valor de AP",
     #subtitle = "Popularidade acima que 5",
     x = "Resolução da imagem (px)",
-    y = "Average Precision (AP %)" 
+    y = "Mean Average Precision (mAP %)" 
   ) +
   theme(legend.position="bottom")
   
@@ -456,7 +457,7 @@ Para a resolução 416 $\times$ 416 foi obtida um valor de 76.24 para o $\hat{\t
 
 Para a resolução 480 $\times$ 480 foi obtida um valor de 77.48 para o $\hat{\theta}$ e um intervalo de confiança de [71.69, 82.44]. (desv. padrão 2.76, N = 20)
 
-Para a resolução 544 $\times$ 544 foi obtida um valor de 77.85 para o $\hat{\theta}$ e um intervalo de confiança de [72.20, 82.68]. (desv. padrão 2.66, N = 20)
+Para a resolução 544 $\times$ 544 foi obtida um valor de 77.85 para o $\hat{\theta}$ e um intervalo de confiança de [72.20, 82.68]. (desv. padrão 2.66, N = 20)    
 
 Diferença entre as médias de AP entre as resoluções 288 $\times$ 288 e 416 $\times$ 416 obtiveram um valor de 7.97 com um intervalo de confiança de [95.0% CI -0.311, 16.2] Com 95% de confiança, a partir da amostra de dados analisada, pode-se estimar que para a população, que de acordo com comparação entre as taxas de AP entre as resoluções 288 $\times$ 288 e 416 $\times$ 416 que pode existir uma diferença muito pequena positiva para a resolução 416 $\times$ 416 ou até mesmo não existir, mas caso exista, trata-se de uma diferença com efeito relevante.
 
